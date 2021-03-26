@@ -1,8 +1,3 @@
-import keras
-from keras.datasets import mnist
-#load mnist dataset
-#(X_train, y_train), (X_test, y_test) = mnist.load_data()
-
 import numpy as np
 import os
 from matplotlib import pyplot as plt
@@ -89,7 +84,7 @@ print('Number of images in x_val', x_val3.shape[0])
 
 # Importing the required Keras modules containing model and layers
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Conv2D, Dropout, Flatten, MaxPooling2D
+from tensorflow.keras.layers import Dense, Conv2D, Dropout, Flatten, MaxPooling2D, BatchNormalization
 from keras.layers.merge import concatenate
 from keras.layers import Input
 from keras.models import Model
@@ -107,7 +102,7 @@ flat2 = Flatten()(pool2)
 merged = concatenate([flat1, flat2])
 dense1 = (Dense(128, activation='relu'))(merged)
 drop1 = Dropout(0.2)(dense1)
-outputs = Dense(4,activation='softmax')(drop1)
+outputs = Dense(3,activation='softmax')(drop1)
 model = Model(inputs=[inputs1, inputs2], outputs=outputs)
 
 model.compile(optimizer='adam', 
@@ -119,10 +114,10 @@ print(model.summary())
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 # Define a callback to monitor val_acc
 early_stopping = EarlyStopping(monitor='val_loss', 
-                       patience=3)
+                       patience=5)
 
 # Save the best model as best_banknote_model.hdf5
-modelCheckpoint = ModelCheckpoint('best_banknote_model.hdf5', save_best_only = True)
+modelCheckpoint = ModelCheckpoint('fault_model.hdf5', save_best_only = True)
 
 h_callback = model.fit(x=[x_train3, x_train4], y= y_train3, epochs=100, batch_size=16,
           validation_data = ([x_val3,x_val4], y_val3), 

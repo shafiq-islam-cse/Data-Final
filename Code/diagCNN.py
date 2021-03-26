@@ -1,11 +1,13 @@
-from IPython import get_ipython;   
-get_ipython().magic('reset -sf')
 import numpy as np
 import os
 from matplotlib import pyplot as plt
 import cv2
 import random
-from keras.preprocessing.image import load_img,img_to_array
+from IPython import get_ipython;   
+get_ipython().magic('reset -sf')
+
+# All the categories you want your neural network to detect
+CATEGORIES = ["Loss","Rub","Twist"]
 
 # The size of the images that your neural network will use
 IMG_SIZE = 64
@@ -42,86 +44,21 @@ def import_data(DATADIR):
     #X = np.array(X).reshape(-1, IMG_SIZE, IMG_SIZE, channel)
     X = np.array(X)
     
-    x_train = np.squeeze(X).astype('float32')
-    y_train = np.array(y).astype('float32')
+    x_train = np.squeeze(X)
+    x_train = x_train.astype('float32')
+    x_train /= 255
+    y_train = np.array(y)
     
     return x_train, y_train
 
-def load_data(fault, channel, r=range(1,501) ):
-    images = []
-    for i in r:
-        img = load_img(
-            r'D:\Atik\pythonScripts\Data Final\Gan\Blade\Fake\{}\{}\{}Fake{}.png'.format(fault,channel,channel,i),
-                   grayscale=False, color_mode="rgb")
-        img = img_to_array(img)
-        img = np.expand_dims(img, axis=0)
-        images.append(img)
-    x = np.vstack(images)
-    if fault == "base":
-        y = np.zeros(len(x)).astype('float32')
-    elif fault == "Loss" | "Rub" | "Twist":
-        y = np.zeros(len(x)).astype('float32')                       
-    return x, y
-
-DATADIR = "D:/Atik/pythonScripts/Data Final/Gan/Blade/Fake/"
-CATEGORIES = ["l1","l1l2","l1l2l3","l1l3","l2","l2l3","l3"]
-x1, _ = import_data(DATADIR+'loss')
-CATEGORIES = ["r1","r1r2","r1r2r3","r1r3","r2","r2r3","r3"]
-x2, _ = import_data(DATADIR+'rub')
-CATEGORIES = ["t1","t1t2","t1t2t3","t1t3","t2","t2t3","t3"]
-x3, _ = import_data(DATADIR+'twist')
-
-fData = np.concatenate((x1, x2, x3))
-random.shuffle(fData)
-
-Path = "D:/Atik/pythonScripts/Data Final/Partition/Blade Set/NEEEMD/Fault diagnose/"
-trainData = Path + "Train"
-valData = Path + "Val"
-testData = Path + "Test"
-
-# All the categories you want your neural network to detect
-CATEGORIES = ["Loss","Rub","Twist"]
-x_train1, y_train1 = import_data(trainData)
-x_val1 , y_val1 = import_data(valData)
-x_test1, y_test1 = import_data(testData)
+Path = "D:/Atik/pythonScripts/Data Final/Partition/Blade Set/CEEMD/Fault diagnose/"
+x_train, y_train = import_data(Path + 'Train')
+x_val , y_val = import_data(Path + 'Val')
+x_test, y_test = import_data(Path + 'Test17')
 
 # Building the classifier
-input_shape = (64, 64, 3)
+input_shape = (IMG_SIZE, IMG_SIZE, channel)
 # Making sure that the values are float so that we can get decimal points after division
-size = 1000
-
-x_train1 = np.concatenate((fData[0:size,:,:,:], x_train1[0:750,:,:,:]))
-y_train1 = np.ones(len(x_train1))
-x_val1 = x_val1[0:75,:,:,:]
-y_val1 = np.ones(len(x_val1))
-x_test1 = x_test1[0:75,:,:,:]
-y_test1 = np.ones(len(x_test1))
-
-CATEGORIES = ["Norm"]
-Norm = "D:/Atik/pythonScripts/Data Final/Partition/Blade Set/NEEEMD/Healthy vs faulty/"
-trainNorm = Norm + "Train"
-valNorm = Norm + "Val"
-testNorm = Norm + "Test"
-
-x_train2, y_train2 = import_data(trainNorm)
-x_val2 , y_val2 = import_data(valNorm)
-x_test2, y_test2 = import_data(testNorm)
-
-x, y = load_data('base', 'b1', range(1,501+size))
-
-x_train2 = np.concatenate((x_train2, x))
-y_train2 = np.concatenate((y_train2, y))
-
-x_train = np.concatenate((x_train1, x_train2))
-y_train = np.concatenate((y_train1, y_train2))
-x_val = np.concatenate((x_val1, x_val2))
-y_val = np.concatenate((y_val1, y_val2))
-x_test = np.concatenate((x_test1, x_test2))
-y_test = np.concatenate((y_test1, y_test2))
-
-x_train /= 255
-x_val /= 255
-x_test /= 255
 print('x_train shape:', x_train.shape)
 print('Number of images in x_train', x_train.shape[0])
 print('Number of images in x_test', x_val.shape[0])
@@ -153,11 +90,11 @@ model.add(Dropout(0.4))
 model.add(Dense(256, activation='relu'))
 model.add(Dropout(0.2))
 
-model.add(Dense(1,activation='sigmoid'))
+model.add(Dense(len(CATEGORIES),activation='softmax'))
 
 opt = keras.optimizers.Adam(learning_rate=1e-4)
 model.compile(optimizer=opt, 
-              loss='binary_crossentropy', 
+              loss='sparse_categorical_crossentropy', 
               metrics=['accuracy'])
 
 # Import the early stopping callback
@@ -175,9 +112,6 @@ h_callback = model.fit(x_train, y_train, batch_size = 16,
 
 # load weights
 model.load_weights("diagCNN_model.hdf5")
-model.compile(optimizer=opt, 
-              loss='binary_crossentropy', 
-              metrics=['accuracy'])
 
 loss, acc= model.evaluate(x_test, y_test)
 print('Test Accuracy: %f' % (acc*100))
@@ -211,7 +145,7 @@ plot_accuracy(h_callback.history['accuracy'], h_callback.history['val_accuracy']
 
 from sklearn.metrics import confusion_matrix
 pred = model.predict(x_test)
-pred = (pred>0.5).astype('float32')
+pred = pred.argmax(axis = 1)
 conf = confusion_matrix(y_test, pred)
 print(conf)
 print('acc : ', np.trace(conf)/np.sum(conf)*100)
