@@ -1,10 +1,10 @@
+from IPython import get_ipython;   
+get_ipython().magic('reset -sf')
 import numpy as np
 import os
 from matplotlib import pyplot as plt
 import cv2
 import random
-from IPython import get_ipython;   
-get_ipython().magic('reset -sf')
 
 # All the categories you want your neural network to detect
 CATEGORIES = ["Loss","Rub","Twist"]
@@ -44,22 +44,42 @@ def import_data(DATADIR):
     #X = np.array(X).reshape(-1, IMG_SIZE, IMG_SIZE, channel)
     X = np.array(X)
     
-    x_train = np.squeeze(X)
-    x_train = x_train.astype('float32')
+    x_train = np.squeeze(X).astype('float32')
     x_train /= 255
-    y_train = np.array(y)
+    y_train = np.array(y).astype('float32')
     
     return x_train, y_train
 
-Path = "D:/Atik/pythonScripts/Data Final/Partition/Blade Set/CEEMD/Fault diagnose/"
-x_train, y_train = import_data(Path + 'Train')
-x_val , y_val = import_data(Path + 'Val')
-x_test, y_test = import_data(Path + 'Test17')
+Fault = "CWT"
+Path = "D:/Atik/pythonScripts/Data Final/Partition/Blade Set/%s/Fault diagnose/"%Fault
+x_train1, y_train1 = import_data(Path + "Train")
+x_val1 , y_val1 = import_data(Path + "Val")
+x_test1, y_test1 = import_data(Path + "Test")
 
 # Building the classifier
-input_shape = (IMG_SIZE, IMG_SIZE, channel)
+input_shape = (64, 64, 3)
 # Making sure that the values are float so that we can get decimal points after division
-print('x_train shape:', x_train.shape)
+
+x_train1 = x_train1[:,:,:,:]
+y_train1 = np.ones(len(x_train1))
+x_val1 = x_val1[:,:,:,:]
+y_val1 = np.ones(len(x_val1))
+x_test1 = x_test1[:,:,:,:]
+y_test1 = np.ones(len(x_test1))
+
+CATEGORIES = ["Norm"]
+Norm = "D:/Atik/pythonScripts/Data Final/Partition/Blade Set/%s/Healthy vs faulty/"%Fault
+x_train2, y_train2 = import_data(Norm + "Train")
+x_val2 , y_val2 = import_data(Norm + "Val")
+x_test2, y_test2 = import_data( Norm + "Test")
+
+x_train = np.concatenate((x_train1, x_train2))
+y_train = np.concatenate((y_train1, y_train2))
+x_val = np.concatenate((x_val1, x_val2))
+y_val = np.concatenate((y_val1, y_val2))
+x_test = np.concatenate((x_test1, x_test2))
+y_test = np.concatenate((y_test1, y_test2))
+
 print('Number of images in x_train', x_train.shape[0])
 print('Number of images in x_test', x_val.shape[0])
 print('Number of images in x_test', x_test.shape[0])
@@ -70,17 +90,16 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Dropout, Flatten, MaxPooling2D
 # Creating a Sequential Model and adding the layers
 model = Sequential()
-model.add(Conv2D(32, kernel_size=(5,5), padding="same",
-                 activation='relu', input_shape=input_shape))
+model.add(Conv2D(32, kernel_size=(5,5), padding="same", input_shape=input_shape))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(32, kernel_size=(3,3),activation='relu',padding="same"))
+model.add(Conv2D(32, kernel_size=(3,3),padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(64, kernel_size=(3,3),activation='relu',padding="same"))
+model.add(Conv2D(64, kernel_size=(3,3),padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(96, kernel_size=(3,3),activation='relu',padding="same"))
+model.add(Conv2D(96, kernel_size=(3,3),padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Flatten()) # Flattening the 2D arrays for fully connected layers
@@ -91,11 +110,11 @@ model.add(Dropout(0.4))
 model.add(Dense(256, activation='relu'))
 model.add(Dropout(0.2))
 
-model.add(Dense(len(CATEGORIES),activation='softmax'))
+model.add(Dense(1,activation='sigmoid'))
 
 opt = keras.optimizers.Adam(learning_rate=1e-4)
 model.compile(optimizer=opt, 
-              loss='sparse_categorical_crossentropy', 
+              loss='binary_crossentropy', 
               metrics=['accuracy'])
 
 # Import the early stopping callback
@@ -146,7 +165,7 @@ plot_accuracy(h_callback.history['accuracy'], h_callback.history['val_accuracy']
 
 from sklearn.metrics import confusion_matrix
 pred = model.predict(x_test)
-pred = pred.argmax(axis = 1)
+pred = (pred>0.5).astype('float32')
 conf = confusion_matrix(y_test, pred)
 print(conf)
 print('acc : ', np.trace(conf)/np.sum(conf)*100)

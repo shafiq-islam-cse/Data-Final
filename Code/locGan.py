@@ -51,10 +51,10 @@ def import_data(DATADIR):
     
     return x_train, y_train
 
-Path = "D:/Atik/pythonScripts/Data Final/Partition/Blade Set/CEEMD/Fault localize/"
+Path = "D:/Atik/pythonScripts/Data Final/Partition/Blade Set/NEEEMD/Fault localize/"
 trainData1 = Path + 'Train'
 valData = Path + 'Val'
-testData = Path + 'Test17'
+testData = Path + 'Test'
 
 x_train1, y_train1 = import_data(trainData1)
 x_val , y_val = import_data(valData)
@@ -67,7 +67,7 @@ dir = "D:\\Atik\\pythonScripts\\Data Final\\Partition\\Blade Set\\NEEEMD\\Fault 
 
 def import_image(size, type):
     images = []
-    for i in range(1,1501):
+    for i in range(1,1450):
         img = load_img(
             r'{}\{}\1 ({}).png'.format(dir,type,i),
                    grayscale=False, color_mode="rgb")
@@ -78,9 +78,10 @@ def import_image(size, type):
     x = np.vstack(images)
     random.shuffle(x)
     x = x[0:size,:,:,:]
+    x /= 255
     return x
 
-size = 50
+size = 300
 l0 = import_image(size, CATEGORIES[0])
 l1 = import_image(size, CATEGORIES[1])
 l2 = import_image(size, CATEGORIES[2])
@@ -109,31 +110,29 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Dropout, Flatten, MaxPooling2D
 # Creating a Sequential Model and adding the layers
 model = Sequential()
-model.add(Conv2D(64, kernel_size=(3,3), padding="same", input_shape=input_shape))
+model.add(Conv2D(32, kernel_size=(5,5), padding="same", input_shape=x_train[0].shape))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(32, kernel_size=(3,3),padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(32, kernel_size=(3,3),padding="same"))
+model.add(Conv2D(64, kernel_size=(3,3),padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(16, kernel_size=(3,3),padding="same"))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-
-model.add(Conv2D(8, kernel_size=(3,3),padding="same"))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-
-model.add(Conv2D(8, kernel_size=(3,3),padding="same"))
+model.add(Conv2D(96, kernel_size=(3,3),padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Flatten()) # Flattening the 2D arrays for fully connected layers
 
 model.add(Dense(512, activation='relu'))
+model.add(Dropout(0.4))
+
+model.add(Dense(256, activation='relu'))
+model.add(Dropout(0.2))
 
 model.add(Dense(len(CATEGORIES),activation='softmax'))
 
-opt = keras.optimizers.Adam(learning_rate=1e-3)
+opt = keras.optimizers.Adam(learning_rate=1e-4)
 model.compile(optimizer=opt, 
               loss='sparse_categorical_crossentropy', 
               metrics=['accuracy'])
@@ -143,19 +142,16 @@ from tensorflow.keras.callbacks import EarlyStopping,ModelCheckpoint
 # Define a callback to monitor val_acc
 early_stopping = EarlyStopping(monitor='val_loss', 
                        patience=15)
-modelCheckpoint = ModelCheckpoint('valCNN_model.hdf5', 
+modelCheckpoint = ModelCheckpoint('diagCNN_model.hdf5', 
                                   save_best_only = True)
-
+    
 # Train your model using the early stopping callback
-h_callback = model.fit(x_train, y_train, batch_size = 32,
+h_callback = model.fit(x_train, y_train, batch_size = 16,
            epochs = 100, validation_data = (x_val, y_val),
            callbacks = [early_stopping,modelCheckpoint])
 
 # load weights
-model.load_weights("valCNN_model.hdf5")
-model.compile(optimizer=opt, 
-              loss='sparse_categorical_crossentropy', 
-              metrics=['accuracy'])
+model.load_weights("diagCNN_model.hdf5")
 
 loss, acc= model.evaluate(x_test, y_test)
 print('Test Accuracy: %f' % (acc*100))

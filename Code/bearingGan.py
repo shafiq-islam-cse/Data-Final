@@ -33,7 +33,7 @@ def import_data(DATADIR):
    			except Exception as e:
    				pass
 
-    #random.shuffle(training_data)
+    random.shuffle(training_data)
         
     X = [] #features
     y = [] #labels
@@ -77,7 +77,7 @@ def import_image(size, type):
     x /= 255
     return x
 
-size = 500
+size = 350
 l0 = import_image(size, CATEGORIES[0])
 l1 = import_image(size, CATEGORIES[1])
 l2 = import_image(size, CATEGORIES[2])
