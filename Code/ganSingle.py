@@ -1,45 +1,33 @@
+from IPython import get_ipython;   
+get_ipython().magic('reset -sf')
 import keras
-import tensorflow as tf
-
-from keras.datasets import mnist
 from keras.layers import Input, Dense, Reshape, Flatten
 from keras.layers import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
-import matplotlib.pyplot as plt
 import  numpy as np
-import pandas as pd
 from numpy.random import randn
 from matplotlib import pyplot
-
-import os  
-import numpy as np  
-from keras.preprocessing import image 
-from keras.regularizers import L1L2
-
-# load data
 from keras.preprocessing.image import load_img
-from keras.preprocessing.image import img_to_array
+
+fault = 'Outer0.021'
 
 images = []
-for i in range(1,100):
+for i in range(1,101):
     img = load_img(
-        r'D:\Atik\pythonScripts\WCNN\vibImages\ballFig\1\Train\FIG{}.png'.format(i),
-               grayscale=True, color_mode="grayscale")
+        r'D:\Atik\pythonScripts\Data Final\Partition\Bearing2.0\NEEEMD\{}\FIG{}.png'.format(fault,i),
+               grayscale=False, color_mode="rgb")
     img = keras.preprocessing.image.img_to_array(img)
     img = np.expand_dims(img, axis=0)
     images.append(img)
    
 x = np.vstack(images)
 
-# Load MNIST
-#x = mnist.load_data()
-
 # Input image dimension
-img_rows = 20
-img_cols = 20
-channels = 1
+img_rows = 64
+img_cols = 64
+channels = 3
 img_shape = (img_rows, img_cols, channels)
 
 # Build generator 
@@ -98,7 +86,7 @@ def build_discriminator():
 # We do this by defining a training function, loading the data set, 
 # re-scaling our training images and setting the ground truths. 
 
-def train(epochs, batch_size=128, save_interval=50):
+def train(epochs, batch_size=32, save_interval=50):
 
     # Load the dataset
     X_train = x
@@ -107,7 +95,7 @@ def train(epochs, batch_size=128, save_interval=50):
     X_train = (X_train.astype(np.float32) - 127.5) / 127.5
 
 #Add channels dimension. As the input to our gen and discr. has a shape 28x28x1.
-    X_train = np.expand_dims(X_train, axis=3) 
+    #X_train = np.expand_dims(X_train, axis=3) 
 
     half_batch = int(batch_size / 2)
 
@@ -137,8 +125,7 @@ def train(epochs, batch_size=128, save_interval=50):
         #Research showed that separate training is more effective. 
         d_loss_real = discriminator.train_on_batch(imgs, np.ones((half_batch, 1)))
         d_loss_fake = discriminator.train_on_batch(gen_imgs, np.zeros((half_batch, 1)))
-    #take average loss from real and fake images. 
-    #
+        #take average loss from real and fake images. 
         d_loss = 0.5 * np.add(d_loss_real, d_loss_fake) 
 
 #And within the same loop we train our Generator, by setting the input noise and
@@ -164,7 +151,6 @@ def train(epochs, batch_size=128, save_interval=50):
         #job of folling the discriminator then the output would be 1 (true)
         g_loss = combined.train_on_batch(noise, valid_y)
 
-
 #Additionally, in order for us to keep track of our training process, we print the
 #progress and save the sample image output depending on the epoch interval specified.  
 # Plot the progress
@@ -181,7 +167,7 @@ def train(epochs, batch_size=128, save_interval=50):
 def save_imgs(epoch):
     #To create random images each time...
     noise = []
-    for i in range(0,20):
+    for i in range(0,1000):
         #Vector of random numbers (creates a column, need to reshape)
         a = randn(100)  
         a = a.reshape(1, 100)
@@ -192,11 +178,11 @@ def save_imgs(epoch):
         gen_imgs = generator.predict(noise[i])
         gen_imgs = 0.5 * gen_imgs + 0.5
         # plot the result
-        pyplot.imshow(gen_imgs[0, :, :, 0], cmap='gray')
+        pyplot.imshow(gen_imgs[0,:, :, :])
         pyplot.axis('off')
-        pyplot.savefig(
-            "D:/Atik/pythonScripts/WCNN/vibImages/ballFig/1/Fake/fakeFIG_%d.png" % (i+1),
-             bbox_inches='tight', pad_inches=0, dpi = (96*20/289))
+        pyplot.savefig("D:/Atik/pythonScripts/Data Final/Gan/Bearing/Fake2/%s/Fake%d.png"
+                       %(fault,i+1),
+             bbox_inches='tight', pad_inches=0, dpi = (96*img_rows/289))
         pyplot.close()
     
 ##############################################################################
@@ -245,13 +231,13 @@ valid = discriminator(img)  #Validity check on the generated image
 combined = Model(z, valid)
 combined.compile(loss='binary_crossentropy', optimizer=optimizer)
 
-train(epochs=30000, batch_size=32, save_interval=29000)
+train(epochs=100001, batch_size=32, save_interval=100000)
 
 #Save model for future use to generate fake images
 #Not tested yet... make sure right model is being saved..
 #Compare with GAN4
 
-generator.save(r'D:/Atik/pythonScripts/WCNN/vibImages/ballFig/generator_model_1.h5') 
+generator.save(r'D:/Atik/pythonScripts/Data Final/Gan/Bearing/Fake2/generator_model_%s.h5'%fault) 
 #Test the model on GAN4_predict...
 #Change epochs back to 30K
                 
