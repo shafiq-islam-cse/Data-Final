@@ -3,7 +3,7 @@ get_ipython().magic('reset -sf')
 import numpy as np
 import os
 from matplotlib import pyplot as plt
-import cv2
+import cv2 
 import random
 
 # All the categories you want your neural network to detect
