@@ -1,10 +1,9 @@
-from IPython import get_ipython;   
+from IPython import get_ipython
 get_ipython().magic('reset -sf')
 import numpy as np
 import os
 from matplotlib import pyplot as plt
-import cv2 
-import random
+import cv2
 
 # All the categories you want your neural network to detect
 CATEGORIES = ["Norm","Ball0.007","Ball0.014","Ball0.021",
@@ -19,10 +18,10 @@ channel = 3
 def import_data(DATADIR):
     training_data = []
     for category in CATEGORIES :
-    	path = os.path.join(DATADIR, category)
+        path = os.path.join(DATADIR, category)
     	for img in os.listdir(path):
     		img_array = cv2.imread(os.path.join(path, img), cv2.IMREAD_UNCHANGED)
-            
+
     for category in CATEGORIES :
    		path = os.path.join(DATADIR, category)
    		class_num = CATEGORIES.index(category)
@@ -35,21 +34,21 @@ def import_data(DATADIR):
    				pass
 
     #random.shuffle(training_data)
-        
+
     X = [] #features
     y = [] #labels
-    
+
     for features, label in training_data:
     	X.append(features)
     	y.append(label)
-    
+
     #X = np.array(X).reshape(-1, IMG_SIZE, IMG_SIZE, channel)
     X = np.array(X)
-    
+
     x_train = np.squeeze(X).astype('float32')
     x_train /= 255
     y_train = np.array(y).astype('float32')
-    
+
     return x_train, y_train
 
 Path = "D:/Atik/pythonScripts/Data Final/Partition/Bearing2.0/CWT"
@@ -67,16 +66,16 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Dropout, Flatten, MaxPooling2D
 # Creating a Sequential Model and adding the layers
 model = Sequential()
-model.add(Conv2D(32, kernel_size=(5,5), padding="same", input_shape=x_train[0].shape))
+model.add(Conv2D(32, kernel_size=(5,5), padding="same", activation='relu', input_shape=x_train[0].shape))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(32, kernel_size=(3,3),padding="same"))
+model.add(Conv2D(32, kernel_size=(3,3),activation='relu',padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(64, kernel_size=(3,3),padding="same"))
+model.add(Conv2D(64, kernel_size=(3,3),activation='relu',padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(96, kernel_size=(3,3),padding="same"))
+model.add(Conv2D(96, kernel_size=(3,3),activation='relu',padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Flatten()) # Flattening the 2D arrays for fully connected layers
@@ -90,18 +89,18 @@ model.add(Dropout(0.2))
 model.add(Dense(len(CATEGORIES),activation='softmax'))
 
 opt = keras.optimizers.Adam(learning_rate=1e-4)
-model.compile(optimizer=opt, 
-              loss='sparse_categorical_crossentropy', 
+model.compile(optimizer=opt,
+              loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
 # Import the early stopping callback
 from tensorflow.keras.callbacks import EarlyStopping,ModelCheckpoint
 # Define a callback to monitor val_acc
-early_stopping = EarlyStopping(monitor='val_loss', 
+early_stopping = EarlyStopping(monitor='val_loss',
                        patience=15)
-modelCheckpoint = ModelCheckpoint('diagCNN_model.hdf5', 
+modelCheckpoint = ModelCheckpoint('diagCNN_model.hdf5',
                                   save_best_only = True)
-    
+
 # Train your model using the early stopping callback
 h_callback = model.fit(x_train, y_train, batch_size = 16,
            epochs = 100, validation_data = (x_val, y_val),
@@ -122,7 +121,7 @@ def plot_loss(loss,val_loss):
   plt.xlabel('Epoch')
   plt.legend(['Train', 'Validation'], loc='upper right')
   plt.show()
-  
+
 def plot_accuracy(acc,val_acc):
   # Plot training & validation accuracy values
   plt.figure()
@@ -133,7 +132,7 @@ def plot_accuracy(acc,val_acc):
   plt.xlabel('Epoch')
   plt.legend(['Train', 'Validation'], loc='lower right')
   plt.show()
-  
+
 # Plot train vs test loss during training
 plot_loss(h_callback.history['loss'], h_callback.history['val_loss'])
 

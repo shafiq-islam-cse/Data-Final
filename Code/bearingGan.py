@@ -113,16 +113,16 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Dropout, Flatten, MaxPooling2D
 # Creating a Sequential Model and adding the layers
 model = Sequential()
-model.add(Conv2D(32, kernel_size=(5,5), padding="same", input_shape=input_shape))
+model.add(Conv2D(32, kernel_size=(5,5), padding="same", activation='relu', input_shape=x_train[0].shape))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(32, kernel_size=(3,3),padding="same"))
+model.add(Conv2D(32, kernel_size=(3,3),activation='relu',padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(64, kernel_size=(3,3),padding="same"))
+model.add(Conv2D(64, kernel_size=(3,3),activation='relu',padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(96, kernel_size=(3,3),padding="same"))
+model.add(Conv2D(96, kernel_size=(3,3),activation='relu',padding="same"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Flatten()) # Flattening the 2D arrays for fully connected layers
